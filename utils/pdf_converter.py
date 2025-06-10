@@ -1,93 +1,58 @@
-"""
-PDF to DOCX conversion utilities using pdf2docx
-"""
-import tempfile
-import os
 from pdf2docx import Converter
-from typing import Tuple, Optional
 import io
+import time
+import os
 
-def convert_pdf_to_docx(pdf_bytes: bytes, filename: str) -> Tuple[bool, Optional[bytes], Optional[str]]:
+def convert_pdf_to_docx(file_bytes, original_filename):
     """
-    Convert PDF bytes to DOCX format
-    
-    Args:
-        pdf_bytes: The PDF file bytes
-        filename: Original filename (for reference)
-        
-    Returns:
-        Tuple of (success, docx_bytes, error_message)
+    Converts a PDF file (from bytes) to DOCX format.
+    Returns: success (bool), docx_bytes (bytes), error_message (str)
     """
-    temp_pdf_path = None
-    temp_docx_path = None
-    
     try:
-        # Create temporary files
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-            temp_pdf.write(pdf_bytes)
+        # Create temporary input and output paths
+        # Use tempfile to create actual files on disk for pdf2docx
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+            temp_pdf.write(file_bytes)
             temp_pdf_path = temp_pdf.name
-            
-        # Create temporary DOCX file path
-        temp_docx_path = temp_pdf_path.replace('.pdf', '.docx')
-        
-        # Convert PDF to DOCX
+
+        # Create a temporary path for the output docx file
+        # It's crucial to write to a file first for pdf2docx
+        temp_docx_path = temp_pdf_path.replace(".pdf", ".docx") # A simple temp docx path
+
         cv = Converter(temp_pdf_path)
-        cv.convert(temp_docx_path, start=0, end=None)
+        cv.convert(temp_docx_path)
         cv.close()
+
+        # Read the converted docx bytes
+        with open(temp_docx_path, "rb") as f:
+            docx_bytes = f.read()
         
-        # Read the converted DOCX file
-        with open(temp_docx_path, 'rb') as docx_file:
-            docx_bytes = docx_file.read()
-            
-        return True, docx_bytes, None
-        
+        return True, docx_bytes, ""
     except Exception as e:
-        error_msg = f"خطأ في تحويل الملف: {str(e)}"
-        return False, None, error_msg
-        
+        return False, None, f"خطأ في عملية التحويل: {str(e)}"
     finally:
         # Clean up temporary files
-        try:
-            if temp_pdf_path and os.path.exists(temp_pdf_path):
-                os.unlink(temp_pdf_path)
-            if temp_docx_path and os.path.exists(temp_docx_path):
-                os.unlink(temp_docx_path)
-        except Exception as cleanup_error:
-            # Log cleanup error but don't fail the conversion
-            print(f"تحذير: لم يتم حذف الملفات المؤقتة: {cleanup_error}")
+        if 'temp_pdf_path' in locals() and os.path.exists(temp_pdf_path):
+            os.remove(temp_pdf_path)
+        if 'temp_docx_path' in locals() and os.path.exists(temp_docx_path):
+            os.remove(temp_docx_path)
 
-def estimate_conversion_time(page_count: int) -> str:
+def estimate_conversion_time(page_count):
     """
-    Estimate conversion time based on page count
-    
-    Args:
-        page_count: Number of pages in the PDF
-        
-    Returns:
-        Estimated time as string
+    Estimates conversion time based on page count.
     """
-    if page_count <= 5:
-        return "أقل من دقيقة"
-    elif page_count <= 20:
+    if page_count < 10:
+        return "ثوانٍ قليلة"
+    elif page_count < 50:
         return "1-2 دقيقة"
-    elif page_count <= 50:
+    elif page_count < 200:
         return "2-5 دقائق"
     else:
-        return "5-10 دقائق"
+        return "أكثر من 5 دقائق"
 
-def get_output_filename(original_filename: str) -> str:
+def get_output_filename(original_filename):
     """
-    Generate output filename for the converted DOCX file
-    
-    Args:
-        original_filename: Original PDF filename
-        
-    Returns:
-        Output DOCX filename
+    Generates an output filename for the DOCX file.
     """
-    if original_filename.lower().endswith('.pdf'):
-        base_name = original_filename[:-4]
-    else:
-        base_name = original_filename
-        
+    base_name = os.path.splitext(original_filename)[0]
     return f"{base_name}_converted.docx"

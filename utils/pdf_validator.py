@@ -1,85 +1,42 @@
-"""
-PDF validation utilities using PyPDF2
-"""
-import PyPDF2
+import pypdf
 import io
-from typing import Tuple, Optional
 
-def validate_pdf_file(file_bytes: bytes) -> Tuple[bool, Optional[str], Optional[int]]:
+def validate_pdf_file(file_bytes):
     """
-    Validate if the uploaded file is a valid PDF
-    
-    Args:
-        file_bytes: The uploaded file bytes
-        
-    Returns:
-        Tuple of (is_valid, error_message, page_count)
+    Validates a PDF file from bytes and extracts page count.
+    Returns: is_valid (bool), error_message (str), page_count (int)
     """
     try:
-        # Create a BytesIO object from the file bytes
-        pdf_stream = io.BytesIO(file_bytes)
+        pdf_file = io.BytesIO(file_bytes)
+        reader = pypdf.PdfReader(pdf_file)
         
-        # Try to read the PDF
-        pdf_reader = PyPDF2.PdfReader(pdf_stream)
-        
-        # Check if the PDF has pages
-        page_count = len(pdf_reader.pages)
-        
+        if reader.is_encrypted:
+            return False, "الملف محمي بكلمة مرور ولا يمكن تحويله.", 0
+            
+        page_count = len(reader.pages)
         if page_count == 0:
-            return False, "ملف PDF فارغ - لا يحتوي على صفحات", 0
+            return False, "ملف PDF لا يحتوي على صفحات.", 0
             
-        # Try to read the first page to ensure it's not corrupted
-        try:
-            first_page = pdf_reader.pages[0]
-            # Try to extract text to verify page integrity
-            first_page.extract_text()
-        except Exception as e:
-            return False, f"ملف PDF تالف - لا يمكن قراءة الصفحات: {str(e)}", 0
-            
-        return True, None, page_count
-        
-    except PyPDF2.errors.PdfReadError as e:
-        return False, f"خطأ في قراءة ملف PDF: {str(e)}", 0
+        return True, "", page_count
+    except pypdf.errors.PdfReadError:
+        return False, "ملف PDF تالف أو غير صالح.", 0
     except Exception as e:
-        return False, f"خطأ غير متوقع في التحقق من الملف: {str(e)}", 0
+        return False, f"حدث خطأ غير متوقع أثناء التحقق من الملف: {str(e)}", 0
 
-def get_pdf_info(file_bytes: bytes) -> dict:
+def get_pdf_info(file_bytes):
     """
-    Extract basic information from PDF file
-    
-    Args:
-        file_bytes: The PDF file bytes
-        
-    Returns:
-        Dictionary containing PDF information
+    Extracts metadata (title, author) from a PDF file from bytes.
+    Returns: dict with 'title' and 'author'
     """
     try:
-        pdf_stream = io.BytesIO(file_bytes)
-        pdf_reader = PyPDF2.PdfReader(pdf_stream)
+        pdf_file = io.BytesIO(file_bytes)
+        reader = pypdf.PdfReader(pdf_file)
         
-        info = {
-            'page_count': len(pdf_reader.pages),
-            'title': '',
-            'author': '',
-            'subject': '',
-            'creator': ''
-        }
-        
-        # Try to extract metadata
-        if pdf_reader.metadata:
-            info['title'] = pdf_reader.metadata.get('/Title', '') or ''
-            info['author'] = pdf_reader.metadata.get('/Author', '') or ''
-            info['subject'] = pdf_reader.metadata.get('/Subject', '') or ''
-            info['creator'] = pdf_reader.metadata.get('/Creator', '') or ''
-            
+        metadata = reader.metadata
+        info = {}
+        if metadata:
+            info['title'] = metadata.get('/Title', 'غير متوفر')
+            info['author'] = metadata.get('/Author', 'غير متوفر')
         return info
-        
-    except Exception as e:
-        return {
-            'page_count': 0,
-            'title': '',
-            'author': '',
-            'subject': '',
-            'creator': '',
-            'error': str(e)
-        }
+    except Exception:
+        return None # Return None if unable to extract info

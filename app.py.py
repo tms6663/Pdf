@@ -3,6 +3,7 @@ PDF to Word Converter Application using Streamlit
 """
 import streamlit as st
 import io
+import os
 from utils.pdf_validator import validate_pdf_file, get_pdf_info
 from utils.pdf_converter import convert_pdf_to_docx, estimate_conversion_time, get_output_filename
 
@@ -78,9 +79,9 @@ def main():
         pdf_info = get_pdf_info(file_bytes)
         
         with col2:
-            if pdf_info.get('title'):
+            if pdf_info and pdf_info.get('title'): # تأكد أن pdf_info ليس None
                 st.info(f"**العنوان:** {pdf_info['title']}")
-            if pdf_info.get('author'):
+            if pdf_info and pdf_info.get('author'): # تأكد أن pdf_info ليس None
                 st.info(f"**المؤلف:** {pdf_info['author']}")
                 
         # Estimate conversion time
@@ -104,9 +105,10 @@ def main():
                 status_text.text("جاري تحضير الملف للتحويل...")
                 
                 # Convert PDF to DOCX
+                # تمرير BytesIO object بدلاً من المسار
                 success, docx_bytes, error_message = convert_pdf_to_docx(
                     file_bytes, 
-                    uploaded_file.name
+                    uploaded_file.name # تمرير اسم الملف الأصلي
                 )
                 
                 progress_bar.progress(75)
@@ -187,7 +189,7 @@ def main():
         <div style='text-align: center; color: #666; font-size: 0.8em;'>
         أداة تحويل PDF إلى Word - آمنة وسريعة
         </div>
-        """, 
+        """,
         unsafe_allow_html=True
     )
 
