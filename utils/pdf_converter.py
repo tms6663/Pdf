@@ -1,7 +1,8 @@
+from pdf2docx import Converter # تم إضافة هذا السطر: استيراد كلاس Converter
 import io
 import time
 import os
-import tempfile # تم إضافة هذا السطر: استيراد مكتبة tempfile
+import tempfile # تم إضافة هذا السطر مسبقًا: استيراد مكتبة tempfile
 
 def convert_pdf_to_docx(file_bytes, original_filename):
     """
@@ -9,21 +10,20 @@ def convert_pdf_to_docx(file_bytes, original_filename):
     Returns: success (bool), docx_bytes (bytes), error_message (str)
     """
     try:
-        # Create temporary input and output paths
-        # Use tempfile to create actual files on disk for pdf2docx
+        # إنشاء ملفات مؤقتة على القرص لـ pdf2docx
         with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
             temp_pdf.write(file_bytes)
             temp_pdf_path = temp_pdf.name
 
-        # Create a temporary path for the output docx file
-        # It's crucial to write to a file first for pdf2docx
-        temp_docx_path = temp_pdf_path.replace(".pdf", ".docx") # A simple temp docx path
+        # تحديد مسار مؤقت لملف DOCX الناتج
+        temp_docx_path = temp_pdf_path.replace(".pdf", ".docx") 
 
-        cv = Converter(temp_pdf_path) # Converter comes from pdf2docx
+        # تهيئة المحول والقيام بالتحويل
+        cv = Converter(temp_pdf_path) # الآن Converter يجب أن يكون معرفًا
         cv.convert(temp_docx_path)
         cv.close()
 
-        # Read the converted docx bytes
+        # قراءة البايتات من ملف DOCX المحول
         with open(temp_docx_path, "rb") as f:
             docx_bytes = f.read()
         
@@ -31,11 +31,17 @@ def convert_pdf_to_docx(file_bytes, original_filename):
     except Exception as e:
         return False, None, f"خطأ في عملية التحويل: {str(e)}"
     finally:
-        # Clean up temporary files
+        # تنظيف الملفات المؤقتة
         if 'temp_pdf_path' in locals() and os.path.exists(temp_pdf_path):
-            os.remove(temp_pdf_path)
+            try:
+                os.remove(temp_pdf_path)
+            except OSError as e:
+                pass 
         if 'temp_docx_path' in locals() and os.path.exists(temp_docx_path):
-            os.remove(temp_docx_path)
+            try:
+                os.remove(temp_docx_path)
+            except OSError as e:
+                pass
 
 def estimate_conversion_time(page_count):
     """
