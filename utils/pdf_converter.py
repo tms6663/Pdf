@@ -1,7 +1,7 @@
-from pdf2docx import Converter
 import io
 import time
 import os
+import tempfile # تم إضافة هذا السطر: استيراد مكتبة tempfile
 
 def convert_pdf_to_docx(file_bytes, original_filename):
     """
@@ -19,7 +19,7 @@ def convert_pdf_to_docx(file_bytes, original_filename):
         # It's crucial to write to a file first for pdf2docx
         temp_docx_path = temp_pdf_path.replace(".pdf", ".docx") # A simple temp docx path
 
-        cv = Converter(temp_pdf_path)
+        cv = Converter(temp_pdf_path) # Converter comes from pdf2docx
         cv.convert(temp_docx_path)
         cv.close()
 
