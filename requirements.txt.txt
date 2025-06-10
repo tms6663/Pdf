@@ -1,3 +1,0 @@
-streamlit
-pypdf # تم تغيير PyPDF2 إلى pypdf، وهو الاسم الأحدث والأكثر شيوعًا
-pdf2docx
